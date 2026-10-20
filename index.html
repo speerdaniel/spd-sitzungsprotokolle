@@ -16,7 +16,7 @@ button.secondary{background:#eee;color:#222;border:1px solid #bbb}button.warn{ba
 @media(max-width:600px){.grid{grid-template-columns:1fr}.panel{padding:12px}.preview{padding:8px}.preview table{font-size:10px}.preview th,.preview td{padding:5px 3px}}
 @media print{header,main>.panel:not(#printPanel),#printPanel>h2,#printPanel>.note,.no-print{display:none!important}body{background:white}main{padding:0;margin:0;max-width:none}#printPanel{border:0;padding:0;margin:0}.preview{padding:0}.preview table{font-size:10pt}.preview thead{display:table-header-group}.preview tr{break-inside:avoid}@page{size:A4;margin:17mm 13mm}}
 </style></head><body>
-<header><strong>SPD Gronau und Epe</strong><small>Protokollgenerator · Testversion 1.0</small></header>
+<header><strong>SPD Gronau und Epe</strong><small>Protokollgenerator · Testversion 1.1 – überarbeitetes Word-Layout</small></header>
 <main>
 <section class="panel"><h2>1. Sitzung</h2>
 <div class="grid">
@@ -41,7 +41,7 @@ button.secondary{background:#eee;color:#222;border:1px solid #bbb}button.warn{ba
 </section>
 <section class="panel no-print"><h2>4. Speichern und exportieren</h2>
 <div class="actions">
-<button id="word">Word (.docx) erstellen</button>
+<button id="word">Word (.docx) erstellen – neues Layout</button>
 <button id="pdf">PDF drucken / sichern</button>
 <button id="save" class="secondary">Entwurf als Datei sichern</button>
 <button id="load" class="secondary">Entwurf öffnen</button>
@@ -84,24 +84,26 @@ if(!window.docx){alert("Die Word-Bibliothek konnte nicht geladen werden. Bitte I
 try{
 const D=window.docx, f=data().fields, pt=(s,bold=false)=>new D.TextRun({text:String(s||""),bold}), para=(s,opt={})=>new D.Paragraph({children:[pt(s)],...opt});
 const cell=(s,w)=>new D.TableCell({width:{size:w,type:D.WidthType.PERCENTAGE},children:[new D.Paragraph({children:[pt(s)]})],verticalAlign:D.VerticalAlign.TOP});
+const font="Arial";
+const run=(s,bold=false,size=20)=>new D.TextRun({text:String(s||""),bold,font,size,color:"222222"});
+const line=(s,opt={})=>new D.Paragraph({children:[run(s,!!opt.bold,opt.size||20)],spacing:{after:opt.after===undefined?105:opt.after},alignment:opt.center?D.AlignmentType.CENTER:D.AlignmentType.LEFT,keepWithNext:!!opt.keep,pageBreakBefore:!!opt.pageBreak});
+const tableCell=(s,width,bold=false)=>new D.TableCell({width:{size:width,type:D.WidthType.PERCENTAGE},margins:{top:105,bottom:105,left:95,right:95},verticalAlign:D.VerticalAlign.TOP,children:[new D.Paragraph({children:[run(s,bold,18)],spacing:{after:0},keepTogether:true})]});
+const tableRows=[new D.TableRow({tableHeader:true,children:[tableCell("TOP",7,true),tableCell("Thema:",26,true),tableCell("Inhalt/Absprachen/Ergebnis:",45,true),tableCell("Wer?",10,true),tableCell("Bis wann?",12,true)]}),...tops.map((t,i)=>new D.TableRow({cantSplit:true,children:[tableCell(`${i+1}.)`,7),tableCell(t.thema,26),tableCell(t.inhalt,45),tableCell(t.wer,10),tableCell(t.bis,12)]}))];
 const children=[
-para(`SPD Gronau und Epe – ${types[f.type]} vom ${displayDate(f.date)}`,{heading:D.HeadingLevel.HEADING_1,alignment:D.AlignmentType.CENTER}),
-para(`Ort: ${f.place||"–"}    Beginn: ${f.start||"–"}    Ende: ${f.end||"–"}`),
-para(`Sitzungsleitung: ${f.chair||"–"}`),
-para(`Teilnehmende: ${f.present||"–"}`),
-para(`Entschuldigt: ${f.excused||"–"}`),
-para("TOPs:",{heading:D.HeadingLevel.HEADING_2,alignment:D.AlignmentType.CENTER}),
-...tops.map((t,i)=>para(`${i+1}.)  ${t.thema}`)),
-para("Protokoll",{heading:D.HeadingLevel.HEADING_2}),
-new D.Table({width:{size:100,type:D.WidthType.PERCENTAGE},rows:[
-new D.TableRow({tableHeader:true,children:[cell("TOP",7),cell("Thema:",25),cell("Inhalt/Absprachen/Ergebnis:",49),cell("Wer?",10),cell("Bis wann?",9)]}),
-...tops.map((t,i)=>new D.TableRow({children:[cell(`${i+1}.)`,7),cell(t.thema,25),cell(t.inhalt,49),cell(t.wer,10),cell(t.bis,9)]}))
-]}),
-para("Themenspeicher",{heading:D.HeadingLevel.HEADING_2}),
-...String(f.parking||"").split("\n").map(s=>para(s)),
-...(f.notes?[para("Weitere Anmerkungen",{heading:D.HeadingLevel.HEADING_2}),...f.notes.split("\n").map(s=>para(s))]:[])
+line(`SPD – ${f.type}-Sitzung Gronau und Epe vom ${displayDate(f.date)}`,{bold:true,size:26,after:330}),
+line(`Ort: ${f.place||"–"}     Beginn: ${f.start||"–"}     Ende: ${f.end||"–"}`,{after:90}),
+line(`Sitzungsleitung: ${f.chair||"–"}`,{after:90}),
+line(`Teilnehmende: ${f.present||"–"}`,{after:90}),
+line(`Entschuldigt: ${f.excused||"–"}`,{after:330}),
+line("TOPs:",{bold:true,size:23,after:200}),
+...tops.map((t,i)=>line(`${i+1}.)  ${t.thema}`,{after:135})),
+line("Protokoll",{bold:true,size:23,after:160,pageBreak:true,keep:true}),
+new D.Table({width:{size:100,type:D.WidthType.PERCENTAGE},rows:tableRows,borders:{top:{style:D.BorderStyle.SINGLE,size:5,color:"777777"},bottom:{style:D.BorderStyle.SINGLE,size:5,color:"777777"},left:{style:D.BorderStyle.SINGLE,size:5,color:"777777"},right:{style:D.BorderStyle.SINGLE,size:5,color:"777777"},insideHorizontal:{style:D.BorderStyle.SINGLE,size:4,color:"999999"},insideVertical:{style:D.BorderStyle.SINGLE,size:4,color:"999999"}}}),
+line("Themenspeicher",{bold:true,size:22,after:120}),
+...String(f.parking||"").split("\n").map(s=>line(s)),
+...(f.notes?[line("Weitere Anmerkungen",{bold:true,size:22,after:120}),...f.notes.split("\n").map(s=>line(s))]:[])
 ];
-let doc=new D.Document({sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:850,bottom:850,left:700,right:700}}},children}]});
+let doc=new D.Document({sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:1134,bottom:1000,left:850,right:850}}},children}]});
 let blob=await D.Packer.toBlob(doc);download(blob,filename("docx"));$("status").textContent="Word-Datei erstellt. Bitte im Download-Dialog in iCloud Drive sichern.";
 }catch(err){alert("Word-Export fehlgeschlagen: "+err.message);}
 };

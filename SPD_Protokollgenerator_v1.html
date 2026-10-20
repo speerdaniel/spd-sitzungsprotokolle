@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPD Gronau und Epe – Protokollgenerator</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#222;background:#f5f5f5}*{box-sizing:border-box}body{margin:0}
+header{background:#e3000b;color:white;padding:16px 20px}header strong{font-size:21px}header small{display:block;margin-top:4px}
+main{max-width:1000px;margin:18px auto;padding:0 12px 40px}.panel{background:white;border:1px solid #ddd;border-radius:12px;padding:18px;margin-bottom:14px}
+h2{font-size:19px;margin:0 0 14px}label{display:block;font-size:13px;font-weight:650;margin-bottom:5px}input,select,textarea{font:inherit;border:1px solid #aaa;border-radius:7px;padding:10px;width:100%;background:white;color:#222}
+textarea{min-height:82px;resize:vertical}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.field{margin-bottom:12px}
+button{border:0;border-radius:8px;background:#e3000b;color:white;font:inherit;font-weight:600;padding:12px 16px;cursor:pointer}
+button.secondary{background:#eee;color:#222;border:1px solid #bbb}button.warn{background:#fff1f1;color:#9b0000;border:1px solid #eab6b6}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.top{border:1px solid #ddd;border-radius:10px;padding:14px;margin:12px 0;background:#fcfcfc}.top h3{margin:0 0 12px}.top .bar{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.note{font-size:13px;color:#666;line-height:1.5}.preview{background:white;padding:28px;color:#111;font-family:Arial,sans-serif}
+.preview h1{font-size:17px;text-align:center;margin:0 0 22px}.preview .subtitle{text-align:center;font-size:13px}.preview .agenda{margin:25px auto 30px;max-width:680px}.preview .agenda div{margin:9px 0;display:grid;grid-template-columns:35px 1fr;gap:10px}
+.preview table{border-collapse:collapse;width:100%;font-size:12px;table-layout:fixed}.preview th,.preview td{border:1px solid #777;padding:9px 7px;text-align:left;vertical-align:top;overflow-wrap:anywhere}.preview th{background:#eee}.preview td{white-space:pre-wrap}.preview .topic-row td{min-height:70px}.preview .topic-row td:nth-child(3){min-height:100px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.panel{padding:12px}.preview{padding:8px}.preview table{font-size:10px}.preview th,.preview td{padding:5px 3px}}
+@media print{header,main>.panel:not(#printPanel),#printPanel>h2,#printPanel>.note,.no-print{display:none!important}body{background:white}main{padding:0;margin:0;max-width:none}#printPanel{border:0;padding:0;margin:0}.preview{padding:0}.preview table{font-size:10pt}.preview thead{display:table-header-group}.preview tr{break-inside:avoid}@page{size:A4;margin:17mm 13mm}}
+</style></head><body>
+<header><strong>SPD Gronau und Epe</strong><small>Protokollgenerator · Testversion 1.0</small></header>
+<main>
+<section class="panel"><h2>1. Sitzung</h2>
+<div class="grid">
+<div class="field"><label for="type">Sitzungsart</label><select id="type"><option value="GOVV">Geschäftsführender Ortsvereinsvorstand (GOVV)</option><option value="OVV" selected>Ortsvereinsvorstand (OVV)</option><option value="MV">Mitgliederversammlung (MV)</option></select></div>
+<div class="field"><label for="date">Datum</label><input id="date" type="date"></div>
+<div class="field"><label for="place">Ort</label><input id="place" placeholder="z. B. Bürgerbüro"></div>
+<div class="field"><label for="start">Beginn</label><input id="start" type="time"></div>
+<div class="field"><label for="end">Ende</label><input id="end" type="time"></div>
+<div class="field"><label for="chair">Sitzungsleitung</label><input id="chair" placeholder="Name"></div>
+</div>
+<div class="field"><label for="present">Teilnehmende</label><input id="present" value="siehe Teilnehmendenliste"></div>
+<div class="field"><label for="excused">Entschuldigt</label><input id="excused" placeholder="Namen"></div>
+</section>
+<section class="panel"><h2>2. Tagesordnung und Protokoll</h2>
+<p class="note">Jedes Thema erscheint automatisch oben in der Tagesordnung und unten in der Protokolltabelle. Füge so viele TOPs hinzu, wie du benötigst.</p>
+<div id="tops"></div>
+<button id="add">＋ Weiteren TOP hinzufügen</button>
+</section>
+<section class="panel"><h2>3. Abschluss</h2>
+<div class="field"><label for="parking">Themenspeicher</label><textarea id="parking" placeholder="Themen für kommende Sitzungen"></textarea></div>
+<div class="field"><label for="notes">Weitere Anmerkungen</label><textarea id="notes"></textarea></div>
+</section>
+<section class="panel no-print"><h2>4. Speichern und exportieren</h2>
+<div class="actions">
+<button id="word">Word (.docx) erstellen</button>
+<button id="pdf">PDF drucken / sichern</button>
+<button id="save" class="secondary">Entwurf als Datei sichern</button>
+<button id="load" class="secondary">Entwurf öffnen</button>
+<input id="file" type="file" accept=".json,application/json" hidden>
+</div>
+<p class="note" id="status">Word-Export benötigt eine Internetverbindung. PDF: Im iPad-Druckdialog über die Teilen-Funktion als PDF in „Dateien“ sichern. Entwürfe werden zusätzlich nur auf diesem Gerät zwischengespeichert; für eine zuverlässige Sicherung bitte „Entwurf als Datei sichern“ verwenden.</p>
+</section>
+<section class="panel" id="printPanel"><h2>5. Vorschau</h2><div class="preview" id="preview"></div></section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/docx@9.5.1/dist/index.iife.js"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+let tops=[];
+const fields=["type","date","place","start","end","chair","present","excused","parking","notes"];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const types={GOVV:"Sitzung des geschäftsführenden Ortsvereinsvorstands",OVV:"Ortsvereinsvorstandssitzung",MV:"Mitgliederversammlung"};
+function addTop(v={}){tops.push({thema:v.thema||"",inhalt:v.inhalt||"",wer:v.wer||"",bis:v.bis||""});renderTops();update();}
+function renderTops(){let box=$("tops");box.innerHTML="";tops.forEach((t,i)=>{let el=document.createElement("div");el.className="top";el.innerHTML=`<div class="bar"><h3>TOP ${i+1}</h3><button class="warn" type="button" data-remove="${i}">Entfernen</button></div><div class="field"><label>Thema</label><textarea data-i="${i}" data-k="thema" rows="2" placeholder="Tagesordnungspunkt"></textarea></div><div class="field"><label>Inhalt / Absprachen / Ergebnis</label><textarea data-i="${i}" data-k="inhalt" placeholder="Verlauf, Beschlüsse und Ergebnisse"></textarea></div><div class="grid"><div class="field"><label>Wer?</label><input data-i="${i}" data-k="wer"></div><div class="field"><label>Bis wann?</label><input data-i="${i}" data-k="bis" placeholder="Datum / Frist"></div></div>`;box.append(el);el.querySelectorAll("[data-k]").forEach(x=>x.value=t[x.dataset.k]);});}
+$("tops").addEventListener("input",e=>{let x=e.target;if(x.dataset.k){tops[+x.dataset.i][x.dataset.k]=x.value;update();}});
+$("tops").addEventListener("click",e=>{let x=e.target.closest("[data-remove]");if(x){tops.splice(+x.dataset.remove,1);renderTops();update();}});
+$("add").onclick=()=>addTop();
+fields.forEach(k=>$(k).addEventListener("input",update));
+function data(){return {version:1,fields:Object.fromEntries(fields.map(k=>[k,$(k).value])),tops};}
+function apply(d){if(!d||!Array.isArray(d.tops))throw Error("Ungültiger Entwurf");fields.forEach(k=>{if(d.fields&&d.fields[k]!=null)$(k).value=d.fields[k]});tops=d.tops.map(t=>({thema:String(t.thema||""),inhalt:String(t.inhalt||""),wer:String(t.wer||""),bis:String(t.bis||"")}));renderTops();update();}
+function displayDate(s){if(!s)return "____________";let [y,m,d]=s.split("-");return `${d}.${m}.${y}`;}
+function update(){let d=data(),f=d.fields;let agenda=tops.map((t,i)=>`<div><b>${i+1}.</b><span>${esc(t.thema)||"________________"}</span></div>`).join("");
+let rows=tops.map((t,i)=>`<tr class="topic-row"><td>${i+1}.)</td><td>${esc(t.thema)}</td><td>${esc(t.inhalt)}</td><td>${esc(t.wer)}</td><td>${esc(t.bis)}</td></tr>`).join("");
+$("preview").innerHTML=`<h1>SPD Gronau und Epe – ${esc(types[f.type])} vom ${displayDate(f.date)}</h1><div class="subtitle"><p><b>Ort:</b> ${esc(f.place)||"–"} &nbsp; <b>Beginn:</b> ${esc(f.start)||"–"} &nbsp; <b>Ende:</b> ${esc(f.end)||"–"}</p><p><b>Sitzungsleitung:</b> ${esc(f.chair)||"–"}</p><p><b>Teilnehmende:</b> ${esc(f.present)||"–"} &nbsp; <b>Entschuldigt:</b> ${esc(f.excused)||"–"}</p></div><div class="agenda"><h3 style="text-align:center">TOPs:</h3>${agenda}</div><table><colgroup><col style="width:7%"><col style="width:25%"><col style="width:49%"><col style="width:10%"><col style="width:9%"></colgroup><thead><tr><th>TOP</th><th>Thema:</th><th>Inhalt/Absprachen/Ergebnis:</th><th>Wer?</th><th>Bis wann?</th></tr></thead><tbody>${rows}</tbody></table><h3 style="margin-top:24px">Themenspeicher</h3><p style="white-space:pre-wrap">${esc(f.parking)||" "}</p>${f.notes?`<h3>Weitere Anmerkungen</h3><p style="white-space:pre-wrap">${esc(f.notes)}</p>`:""}`;
+try{localStorage.setItem("spd-protokoll-v1",JSON.stringify(d))}catch(e){}
+}
+function download(blob,name){const u=URL.createObjectURL(blob);let a=document.createElement("a");a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000);}
+function filename(ext){return `SPD_${$("type").value}_Protokoll_${$("date").value||"Entwurf"}.${ext}`;}
+$("save").onclick=()=>{download(new Blob([JSON.stringify(data(),null,2)],{type:"application/json"}),filename("json"));$("status").textContent="Entwurf als JSON-Datei erstellt. Bitte in iCloud Drive sichern.";};
+$("load").onclick=()=>$("file").click();
+$("file").onchange=async e=>{let file=e.target.files[0];if(!file)return;try{apply(JSON.parse(await file.text()));$("status").textContent="Entwurf geladen."}catch(err){alert("Entwurf konnte nicht geladen werden: "+err.message)}e.target.value="";};
+$("pdf").onclick=()=>window.print();
+$("word").onclick=async()=>{
+if(!window.docx){alert("Die Word-Bibliothek konnte nicht geladen werden. Bitte Internetverbindung prüfen und die Seite neu öffnen.");return;}
+try{
+const D=window.docx, f=data().fields, pt=(s,bold=false)=>new D.TextRun({text:String(s||""),bold}), para=(s,opt={})=>new D.Paragraph({children:[pt(s)],...opt});
+const cell=(s,w)=>new D.TableCell({width:{size:w,type:D.WidthType.PERCENTAGE},children:[new D.Paragraph({children:[pt(s)]})],verticalAlign:D.VerticalAlign.TOP});
+const children=[
+para(`SPD Gronau und Epe – ${types[f.type]} vom ${displayDate(f.date)}`,{heading:D.HeadingLevel.HEADING_1,alignment:D.AlignmentType.CENTER}),
+para(`Ort: ${f.place||"–"}    Beginn: ${f.start||"–"}    Ende: ${f.end||"–"}`),
+para(`Sitzungsleitung: ${f.chair||"–"}`),
+para(`Teilnehmende: ${f.present||"–"}`),
+para(`Entschuldigt: ${f.excused||"–"}`),
+para("TOPs:",{heading:D.HeadingLevel.HEADING_2,alignment:D.AlignmentType.CENTER}),
+...tops.map((t,i)=>para(`${i+1}.)  ${t.thema}`)),
+para("Protokoll",{heading:D.HeadingLevel.HEADING_2}),
+new D.Table({width:{size:100,type:D.WidthType.PERCENTAGE},rows:[
+new D.TableRow({tableHeader:true,children:[cell("TOP",7),cell("Thema:",25),cell("Inhalt/Absprachen/Ergebnis:",49),cell("Wer?",10),cell("Bis wann?",9)]}),
+...tops.map((t,i)=>new D.TableRow({children:[cell(`${i+1}.)`,7),cell(t.thema,25),cell(t.inhalt,49),cell(t.wer,10),cell(t.bis,9)]}))
+]}),
+para("Themenspeicher",{heading:D.HeadingLevel.HEADING_2}),
+...String(f.parking||"").split("\n").map(s=>para(s)),
+...(f.notes?[para("Weitere Anmerkungen",{heading:D.HeadingLevel.HEADING_2}),...f.notes.split("\n").map(s=>para(s))]:[])
+];
+let doc=new D.Document({sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:850,bottom:850,left:700,right:700}}},children}]});
+let blob=await D.Packer.toBlob(doc);download(blob,filename("docx"));$("status").textContent="Word-Datei erstellt. Bitte im Download-Dialog in iCloud Drive sichern.";
+}catch(err){alert("Word-Export fehlgeschlagen: "+err.message);}
+};
+try{let s=localStorage.getItem("spd-protokoll-v1");if(s)apply(JSON.parse(s));else{ $("date").value=new Date().toLocaleDateString("en-CA");addTop();}}catch(e){addTop();}
+update();
+</script></body></html>
